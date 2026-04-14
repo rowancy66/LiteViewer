@@ -178,6 +178,36 @@ final class ImageViewerState: ObservableObject {
         }
     }
 
+    func rotateLeft() {
+        transformCurrentImage(actionName: "左转") { image in
+            image.rotated(degrees: -90)
+        }
+    }
+
+    func rotateRight() {
+        transformCurrentImage(actionName: "右转") { image in
+            image.rotated(degrees: 90)
+        }
+    }
+
+    func flipHorizontal() {
+        transformCurrentImage(actionName: "水平翻转") { image in
+            image.flipped(horizontal: true)
+        }
+    }
+
+    func flipVertical() {
+        transformCurrentImage(actionName: "垂直翻转") { image in
+            image.flipped(horizontal: false)
+        }
+    }
+
+    func cropCenterSquare() {
+        transformCurrentImage(actionName: "中心裁剪") { image in
+            image.croppedToCenterSquare()
+        }
+    }
+
     private func loadCurrentImageAndResetView() {
         guard let url = navigator.currentURL else {
             image = nil
@@ -225,8 +255,116 @@ final class ImageViewerState: ObservableObject {
     private func showActionMessage(_ message: String) {
         actionMessage = message
     }
+
+    private func transformCurrentImage(actionName: String, transform: (NSImage) -> NSImage?) {
+        guard let sourceURL = navigator.currentURL, let image else {
+            showActionMessage("还没有可编辑的图片")
+            return
+        }
+
+        guard let editedImage = transform(image) else {
+            showActionMessage("\(actionName)失败：无法处理图片")
+            return
+        }
+
+        let destinationURL = editedImageURL(for: sourceURL, actionName: actionName)
+        do {
+            try editedImage.writePNG(to: destinationURL)
+            navigator = ImageFileNavigator.navigator(opening: destinationURL)
+            loadCurrentImageAndResetView()
+            showActionMessage("已生成\(actionName)图片")
+        } catch {
+            showActionMessage("\(actionName)失败：\(error.localizedDescription)")
+        }
+    }
+
+    private func editedImageURL(for sourceURL: URL, actionName: String) -> URL {
+        let folderURL = sourceURL.deletingLastPathComponent()
+        let baseName = sourceURL.deletingPathExtension().lastPathComponent
+        let safeAction = actionName.replacingOccurrences(of: " ", with: "-")
+        return uniqueDestinationURL(for: "\(baseName)-\(safeAction).png", in: folderURL)
+    }
 }
 
 extension Notification.Name {
     static let imageViewerActualSize = Notification.Name("imageViewerActualSize")
+}
+
+private extension NSImage {
+    func rotated(degrees: CGFloat) -> NSImage? {
+        let radians = degrees * .pi / 180
+        let originalSize = size
+        let rotatedSize = CGSize(width: originalSize.height, height: originalSize.width)
+        let output = NSImage(size: rotatedSize)
+
+        output.lockFocus()
+        guard let context = NSGraphicsContext.current?.cgContext else {
+            output.unlockFocus()
+            return nil
+        }
+
+        context.translateBy(x: rotatedSize.width / 2, y: rotatedSize.height / 2)
+        context.rotate(by: radians)
+        draw(in: CGRect(
+            x: -originalSize.width / 2,
+            y: -originalSize.height / 2,
+            width: originalSize.width,
+            height: originalSize.height
+        ))
+        output.unlockFocus()
+        return output
+    }
+
+    func flipped(horizontal: Bool) -> NSImage? {
+        let output = NSImage(size: size)
+        output.lockFocus()
+        guard let context = NSGraphicsContext.current?.cgContext else {
+            output.unlockFocus()
+            return nil
+        }
+
+        if horizontal {
+            context.translateBy(x: size.width, y: 0)
+            context.scaleBy(x: -1, y: 1)
+        } else {
+            context.translateBy(x: 0, y: size.height)
+            context.scaleBy(x: 1, y: -1)
+        }
+
+        draw(in: CGRect(origin: .zero, size: size))
+        output.unlockFocus()
+        return output
+    }
+
+    func croppedToCenterSquare() -> NSImage? {
+        guard let cgImage = cgImage(forProposedRect: nil, context: nil, hints: nil) else {
+            return nil
+        }
+
+        let side = min(cgImage.width, cgImage.height)
+        let cropRect = CGRect(
+            x: (cgImage.width - side) / 2,
+            y: (cgImage.height - side) / 2,
+            width: side,
+            height: side
+        )
+
+        guard let cropped = cgImage.cropping(to: cropRect) else {
+            return nil
+        }
+
+        return NSImage(cgImage: cropped, size: CGSize(width: side, height: side))
+    }
+
+    func writePNG(to url: URL) throws {
+        guard
+            let tiffData = tiffRepresentation,
+            let bitmap = NSBitmapImageRep(data: tiffData),
+            let pngData = bitmap.representation(using: .png, properties: [:])
+        else {
+            throw CocoaError(.fileWriteUnknown)
+        }
+
+        try pngData.write(to: url, options: .atomic)
+    }
 }

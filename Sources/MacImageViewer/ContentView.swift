@@ -161,6 +161,28 @@ struct ContentView: View {
 
         Divider()
 
+        Button("向左旋转并另存") {
+            state.rotateLeft()
+        }
+
+        Button("向右旋转并另存") {
+            state.rotateRight()
+        }
+
+        Button("水平翻转并另存") {
+            state.flipHorizontal()
+        }
+
+        Button("垂直翻转并另存") {
+            state.flipVertical()
+        }
+
+        Button("中心裁剪为正方形并另存") {
+            state.cropCenterSquare()
+        }
+
+        Divider()
+
         Button("复制文件路径") {
             state.copyCurrentImagePath()
         }
@@ -209,15 +231,23 @@ private struct ThumbnailImage: View {
     let url: URL
 
     var body: some View {
-        if let image = NSImage(contentsOf: url) {
-            Image(nsImage: image)
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-                .padding(3)
-        } else {
-            Text("无法预览")
-                .font(.system(size: 11))
-                .foregroundStyle(.secondary)
-        }
+        ThumbnailImageView(url: url)
+            .padding(3)
+    }
+}
+
+private struct ThumbnailImageView: NSViewRepresentable {
+    let url: URL
+
+    func makeNSView(context: Context) -> NSImageView {
+        let imageView = NSImageView()
+        imageView.imageAlignment = .alignCenter
+        imageView.imageScaling = .scaleProportionallyUpOrDown
+        imageView.wantsLayer = true
+        return imageView
+    }
+
+    func updateNSView(_ nsView: NSImageView, context: Context) {
+        nsView.image = NSImage(contentsOf: url)
     }
 }

@@ -24,6 +24,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         self.window = window
 
         NSApp.activate(ignoringOtherApps: true)
+
+        if let firstPath = CommandLine.arguments.dropFirst().first {
+            appState.open(URL(fileURLWithPath: firstPath))
+        }
+    }
+
+    func application(_ sender: NSApplication, openFiles filenames: [String]) {
+        guard let firstFile = filenames.first else {
+            sender.reply(toOpenOrPrint: .failure)
+            return
+        }
+
+        appState.open(URL(fileURLWithPath: firstFile))
+        sender.reply(toOpenOrPrint: .success)
     }
 
     private func buildMenu() {

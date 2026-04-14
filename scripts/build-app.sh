@@ -5,6 +5,7 @@ ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 APP_NAME="MacImageViewer"
 DIST_DIR="$ROOT_DIR/dist"
 APP_DIR="$DIST_DIR/$APP_NAME.app"
+DMG_PATH="$DIST_DIR/$APP_NAME.dmg"
 CONTENTS_DIR="$APP_DIR/Contents"
 MACOS_DIR="$CONTENTS_DIR/MacOS"
 RESOURCES_DIR="$CONTENTS_DIR/Resources"
@@ -20,4 +21,18 @@ cp ".build/release/$APP_NAME" "$MACOS_DIR/$APP_NAME"
 cp "packaging/Info.plist" "$CONTENTS_DIR/Info.plist"
 chmod +x "$MACOS_DIR/$APP_NAME"
 
+if command -v /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister >/dev/null 2>&1; then
+  /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister \
+    -f "$APP_DIR" >/dev/null 2>&1 || true
+fi
+
+rm -f "$DMG_PATH"
+hdiutil create \
+  -volname "$APP_NAME" \
+  -srcfolder "$APP_DIR" \
+  -ov \
+  -format UDZO \
+  "$DMG_PATH"
+
 echo "已生成：$APP_DIR"
+echo "已生成：$DMG_PATH"
