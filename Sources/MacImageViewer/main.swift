@@ -1,6 +1,6 @@
 import AppKit
+import LiteViewerCore
 import SwiftUI
-import MacImageViewerCore
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var window: NSWindow?
@@ -15,11 +15,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let contentView = ContentView(state: appState)
         let window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 1100, height: 760),
-            styleMask: [.titled, .closable, .miniaturizable, .resizable],
+            styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
             backing: .buffered,
             defer: false
         )
-        window.title = "MacImageViewer"
+        window.title = "LiteViewer"
+        window.titleVisibility = .hidden
+        window.titlebarAppearsTransparent = true
+        window.isMovableByWindowBackground = true
+        window.backgroundColor = .black
+        window.toolbarStyle = .unifiedCompact
         window.center()
         window.contentView = NSHostingView(rootView: contentView)
         window.makeKeyAndOrderFront(nil)
@@ -62,7 +67,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         let appMenuItem = NSMenuItem()
         let appMenu = NSMenu()
-        appMenu.addItem(withTitle: "退出 MacImageViewer", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        appMenu.addItem(withTitle: "退出 LiteViewer", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         appMenuItem.submenu = appMenu
         mainMenu.addItem(appMenuItem)
 

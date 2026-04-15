@@ -2,26 +2,29 @@
 import PackageDescription
 
 let package = Package(
-    name: "MacImageViewer",
+    name: "LiteViewer",
     platforms: [
-        .macOS(.v13)
+        .macOS(.v12)
     ],
     products: [
-        .library(name: "MacImageViewerCore", targets: ["MacImageViewerCore"]),
-        .executable(name: "MacImageViewer", targets: ["MacImageViewer"]),
-        .executable(name: "MacImageViewerCoreChecks", targets: ["MacImageViewerCoreChecks"])
+        .library(name: "LiteViewerCore", targets: ["LiteViewerCore"]),
+        .executable(name: "LiteViewer", targets: ["LiteViewer"]),
+        .executable(name: "LiteViewerCoreChecks", targets: ["LiteViewerCoreChecks"])
     ],
     targets: [
         .target(
-            name: "MacImageViewerCore"
+            name: "LiteViewerCore",
+            path: "Sources/MacImageViewerCore"
         ),
         .executableTarget(
-            name: "MacImageViewer",
-            dependencies: ["MacImageViewerCore"]
+            name: "LiteViewer",
+            dependencies: ["LiteViewerCore"],
+            path: "Sources/MacImageViewer"
         ),
         .executableTarget(
-            name: "MacImageViewerCoreChecks",
-            dependencies: ["MacImageViewerCore"]
+            name: "LiteViewerCoreChecks",
+            dependencies: ["LiteViewerCore"],
+            path: "Sources/MacImageViewerCoreChecks"
         )
     ]
 )

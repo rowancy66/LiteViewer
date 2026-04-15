@@ -1,6 +1,7 @@
 import AppKit
 import Foundation
-import MacImageViewerCore
+import ImageIO
+import LiteViewerCore
 import UniformTypeIdentifiers
 
 /// 界面状态中心：负责打开图片、切换图片、记录当前缩放模式。
@@ -12,6 +13,10 @@ final class ImageViewerState: ObservableObject {
     @Published private(set) var actionMessage: String?
     @Published var resetToken = UUID()
     @Published var scaleText = "适合窗口"
+
+    private var imageCache: [URL: NSImage] = [:]
+    private var cacheGeneration = 0
+    private let prefetchQueue = DispatchQueue(label: "LiteViewer.ImagePrefetch", qos: .utility)
 
     var currentFileName: String {
         navigator.currentURL?.lastPathComponent ?? "未打开图片"
@@ -25,6 +30,10 @@ final class ImageViewerState: ObservableObject {
         let width = Int(image.size.width.rounded())
         let height = Int(image.size.height.rounded())
         return "\(navigator.displayPosition) · \(currentFileName) · \(width) × \(height)"
+    }
+
+    var canPasteImageFromPasteboard: Bool {
+        NSPasteboard.general.canReadObject(forClasses: [NSImage.self], options: nil)
     }
 
     func openImage() {
@@ -43,6 +52,7 @@ final class ImageViewerState: ObservableObject {
 
     func open(_ url: URL) {
         navigator = ImageFileNavigator.navigator(opening: url)
+        bumpCacheGeneration()
         loadCurrentImageAndResetView()
     }
 
@@ -52,16 +62,19 @@ final class ImageViewerState: ObservableObject {
         }
 
         navigator = ImageFileNavigator(files: navigator.files, currentIndex: index)
+        bumpCacheGeneration()
         loadCurrentImageAndResetView()
     }
 
     func previousImage() {
         navigator = navigator.previous()
+        bumpCacheGeneration()
         loadCurrentImageAndResetView()
     }
 
     func nextImage() {
         navigator = navigator.next()
+        bumpCacheGeneration()
         loadCurrentImageAndResetView()
     }
 
@@ -83,43 +96,43 @@ final class ImageViewerState: ObservableObject {
         }
     }
 
-    func copyCurrentImageFile() {
-        guard let url = navigator.currentURL else {
+    func copyCurrentImage() {
+        guard let image else {
             showActionMessage("还没有可复制的图片")
             return
         }
 
         NSPasteboard.general.clearContents()
-        if NSPasteboard.general.writeObjects([url as NSURL]) {
-            showActionMessage("已复制图片文件")
+        if NSPasteboard.general.writeObjects([image]) {
+            showActionMessage("已复制图片")
         } else {
-            showActionMessage("复制图片文件失败")
+            showActionMessage("复制图片失败")
         }
     }
 
-    func pasteImageFileIntoCurrentFolder() {
+    func pasteImageIntoCurrentFolder() {
         guard let folderURL = currentFolderURL else {
             showActionMessage("请先打开一张图片，再粘贴")
             return
         }
 
         let pasteboard = NSPasteboard.general
-        let urls = pasteboard.readObjects(forClasses: [NSURL.self], options: nil) as? [URL] ?? []
-        let imageURLs = urls.filter(ImageFileNavigator.isSupportedImage)
+        let images = pasteboard.readObjects(forClasses: [NSImage.self], options: nil) as? [NSImage] ?? []
 
-        guard let sourceURL = imageURLs.first else {
+        guard let pastedImage = images.first else {
             showActionMessage("剪贴板里没有可粘贴的图片文件")
             return
         }
 
         let destinationURL = uniqueDestinationURL(
-            for: sourceURL.lastPathComponent,
+            for: pastedImageFileName(),
             in: folderURL
         )
 
         do {
-            try FileManager.default.copyItem(at: sourceURL, to: destinationURL)
+            try pastedImage.writePNG(to: destinationURL)
             navigator = ImageFileNavigator.navigator(opening: destinationURL)
+            bumpCacheGeneration()
             loadCurrentImageAndResetView()
             showActionMessage("已粘贴图片")
         } catch {
@@ -163,6 +176,7 @@ final class ImageViewerState: ObservableObject {
                 deletedIndex: currentIndex
             )
             navigator = ImageFileNavigator(files: remainingFiles, currentIndex: nextIndex)
+            bumpCacheGeneration()
 
             if navigator.currentURL == nil {
                 image = nil
@@ -179,13 +193,13 @@ final class ImageViewerState: ObservableObject {
     }
 
     func rotateLeft() {
-        transformCurrentImage(actionName: "左转") { image in
+        overwriteCurrentImage(actionName: "左转") { image in
             image.rotated(degrees: -90)
         }
     }
 
     func rotateRight() {
-        transformCurrentImage(actionName: "右转") { image in
+        overwriteCurrentImage(actionName: "右转") { image in
             image.rotated(degrees: 90)
         }
     }
@@ -215,7 +229,7 @@ final class ImageViewerState: ObservableObject {
             return
         }
 
-        guard let loadedImage = NSImage(contentsOf: url) else {
+        guard let loadedImage = image(for: url) else {
             image = nil
             errorMessage = "无法打开这张图片：\(url.lastPathComponent)"
             return
@@ -224,6 +238,8 @@ final class ImageViewerState: ObservableObject {
         image = loadedImage
         errorMessage = nil
         fitToWindow()
+        keepOnlyAdjacentImagesInCache()
+        prefetchAdjacentImages(for: url, generation: cacheGeneration)
     }
 
     private var currentFolderURL: URL? {
@@ -252,8 +268,104 @@ final class ImageViewerState: ObservableObject {
         }
     }
 
+    private func pastedImageFileName() -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyyMMdd_HHmmss"
+        return "贴图_\(formatter.string(from: Date())).png"
+    }
+
     private func showActionMessage(_ message: String) {
         actionMessage = message
+    }
+
+    private func image(for url: URL) -> NSImage? {
+        if let cached = imageCache[url.standardizedFileURL] {
+            return cached
+        }
+
+        guard let loadedImage = NSImage(contentsOf: url) else {
+            return nil
+        }
+
+        imageCache[url.standardizedFileURL] = loadedImage
+        return loadedImage
+    }
+
+    private func prefetchAdjacentImages(for url: URL, generation: Int) {
+        let urls = Array(Set([navigator.previousURL, navigator.nextURL]
+            .compactMap { $0 }
+            .map { $0.standardizedFileURL }
+            .filter { $0 != url.standardizedFileURL }))
+
+        guard !urls.isEmpty else {
+            return
+        }
+
+        for nextURL in urls where imageCache[nextURL] == nil {
+            prefetchQueue.async { [weak self] in
+                guard let self, generation == self.cacheGeneration else { return }
+                guard let image = NSImage(contentsOf: nextURL) else { return }
+
+                DispatchQueue.main.async { [weak self] in
+                    guard let self, generation == self.cacheGeneration else { return }
+                    self.imageCache[nextURL] = image
+                    self.keepOnlyAdjacentImagesInCache()
+                }
+            }
+        }
+    }
+
+    private func keepOnlyAdjacentImagesInCache() {
+        guard let currentURL = navigator.currentURL?.standardizedFileURL else {
+            imageCache.removeAll()
+            return
+        }
+
+        var keep = Set<URL>()
+        keep.insert(currentURL)
+
+        if let previousURL = navigator.previousURL?.standardizedFileURL {
+            keep.insert(previousURL)
+        }
+
+        if let nextURL = navigator.nextURL?.standardizedFileURL {
+            keep.insert(nextURL)
+        }
+
+        imageCache = imageCache.filter { keep.contains($0.key) }
+    }
+
+    private func bumpCacheGeneration() {
+        cacheGeneration &+= 1
+    }
+
+    private func overwriteCurrentImage(actionName: String, transform: (NSImage) -> NSImage?) {
+        guard let sourceURL = navigator.currentURL, let image else {
+            showActionMessage("还没有可编辑的图片")
+            return
+        }
+
+        guard let editedImage = transform(image) else {
+            showActionMessage("\(actionName)失败：无法处理图片")
+            return
+        }
+
+        let tempURL = sourceURL
+            .deletingLastPathComponent()
+            .appendingPathComponent(".liteviewer-\(UUID().uuidString)")
+            .appendingPathExtension(sourceURL.pathExtension)
+
+        do {
+            try editedImage.writePreservingOriginalFormat(to: tempURL, originalURL: sourceURL)
+            _ = try FileManager.default.replaceItemAt(sourceURL, withItemAt: tempURL)
+            imageCache.removeValue(forKey: sourceURL.standardizedFileURL)
+            bumpCacheGeneration()
+            loadCurrentImageAndResetView()
+            showActionMessage("已\(actionName)")
+        } catch {
+            try? FileManager.default.removeItem(at: tempURL)
+            showActionMessage("\(actionName)失败：\(error.localizedDescription)")
+        }
     }
 
     private func transformCurrentImage(actionName: String, transform: (NSImage) -> NSImage?) {
@@ -271,6 +383,7 @@ final class ImageViewerState: ObservableObject {
         do {
             try editedImage.writePNG(to: destinationURL)
             navigator = ImageFileNavigator.navigator(opening: destinationURL)
+            bumpCacheGeneration()
             loadCurrentImageAndResetView()
             showActionMessage("已生成\(actionName)图片")
         } catch {
@@ -366,5 +479,26 @@ private extension NSImage {
         }
 
         try pngData.write(to: url, options: .atomic)
+    }
+
+    func writePreservingOriginalFormat(to tempURL: URL, originalURL: URL) throws {
+        guard let cgImage = cgImage(forProposedRect: nil, context: nil, hints: nil) else {
+            throw CocoaError(.fileWriteUnknown)
+        }
+
+        let fileType = UTType(filenameExtension: originalURL.pathExtension) ?? .png
+        guard let destination = CGImageDestinationCreateWithURL(
+            tempURL as CFURL,
+            fileType.identifier as CFString,
+            1,
+            nil
+        ) else {
+            throw CocoaError(.fileWriteUnknown)
+        }
+
+        CGImageDestinationAddImage(destination, cgImage, nil)
+        guard CGImageDestinationFinalize(destination) else {
+            throw CocoaError(.fileWriteUnknown)
+        }
     }
 }

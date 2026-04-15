@@ -15,6 +15,18 @@ public struct ImageFileNavigator {
         return files[currentIndex]
     }
 
+    public var previousURL: URL? {
+        guard let currentIndex, !files.isEmpty else { return nil }
+        let previousIndex = currentIndex == 0 ? files.count - 1 : currentIndex - 1
+        return files[previousIndex]
+    }
+
+    public var nextURL: URL? {
+        guard let currentIndex, !files.isEmpty else { return nil }
+        let nextIndex = currentIndex == files.count - 1 ? 0 : currentIndex + 1
+        return files[nextIndex]
+    }
+
     public var displayPosition: String {
         guard let currentIndex else { return "0 / 0" }
         return "\(currentIndex + 1) / \(files.count)"

@@ -1,5 +1,5 @@
 import Foundation
-import MacImageViewerCore
+import LiteViewerCore
 
 enum CheckFailure: Error, CustomStringConvertible {
     case failed(String)
@@ -55,6 +55,21 @@ func checkNextAndPreviousWrapAroundAtEdges() throws {
     try expect(last.next().currentURL?.lastPathComponent == "1.png", "最后一张的下一张应循环到第一张")
 }
 
+func checkPreviousAndNextURLsAreStableForTwoImages() throws {
+    let files = [
+        URL(fileURLWithPath: "/tmp/1.png"),
+        URL(fileURLWithPath: "/tmp/2.png")
+    ]
+
+    let first = ImageFileNavigator(files: files, currentIndex: 0)
+    try expect(first.previousURL?.lastPathComponent == "2.png", "两张图时，第一张的上一张应为第二张")
+    try expect(first.nextURL?.lastPathComponent == "2.png", "两张图时，第一张的下一张应为第二张")
+
+    let second = ImageFileNavigator(files: files, currentIndex: 1)
+    try expect(second.previousURL?.lastPathComponent == "1.png", "两张图时，第二张的上一张应为第一张")
+    try expect(second.nextURL?.lastPathComponent == "1.png", "两张图时，第二张的下一张应为第一张")
+}
+
 func checkIndexAfterDeletingCurrentImage() throws {
     try expect(
         ImageFileNavigator.indexAfterDeletingCurrent(count: 3, deletedIndex: 1) == 1,
@@ -82,7 +97,7 @@ func checkLaunchFileURLsIgnoreSystemArguments() throws {
     try Data().write(to: textURL)
 
     let urls = ImageFileNavigator.launchFileURLs(from: [
-        "MacImageViewer",
+        "LiteViewer",
         "-psn_0_12345",
         "--debug",
         textURL.path,
@@ -96,6 +111,7 @@ let checks: [(String, () throws -> Void)] = [
     ("支持的图片扩展名不区分大小写", checkSupportedImageExtensionsAreCaseInsensitive),
     ("扫描文件夹时只保留图片并按 Finder 风格排序", checkImageFilesFiltersAndSortsByFinderLikeNameOrder),
     ("上一张和下一张在边界处循环", checkNextAndPreviousWrapAroundAtEdges),
+    ("两张图时 previousURL 和 nextURL 指向稳定", checkPreviousAndNextURLsAreStableForTwoImages),
     ("删除当前图片后选择合理的新索引", checkIndexAfterDeletingCurrentImage),
     ("启动时忽略系统参数并打开真实图片路径", checkLaunchFileURLsIgnoreSystemArguments)
 ]

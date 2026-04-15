@@ -6,15 +6,15 @@
   <key>CFBundleDevelopmentRegion</key>
   <string>zh_CN</string>
   <key>CFBundleDisplayName</key>
-  <string>MacImageViewer</string>
+  <string>LiteViewer</string>
   <key>CFBundleExecutable</key>
-  <string>MacImageViewer</string>
+  <string>LiteViewer</string>
   <key>CFBundleIdentifier</key>
-  <string>dev.rowancy66.MacImageViewer</string>
+  <string>dev.rowancy66.LiteViewer</string>
   <key>CFBundleInfoDictionaryVersion</key>
   <string>6.0</string>
   <key>CFBundleName</key>
-  <string>MacImageViewer</string>
+  <string>LiteViewer</string>
   <key>CFBundlePackageType</key>
   <string>APPL</string>
   <key>CFBundleShortVersionString</key>
@@ -24,7 +24,7 @@
   <key>LSApplicationCategoryType</key>
   <string>public.app-category.photography</string>
   <key>LSMinimumSystemVersion</key>
-  <string>13.0</string>
+  <string>12.0</string>
   <key>NSHighResolutionCapable</key>
   <true/>
   <key>CFBundleDocumentTypes</key>
