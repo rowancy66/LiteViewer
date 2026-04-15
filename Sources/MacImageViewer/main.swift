@@ -5,10 +5,12 @@ import MacImageViewerCore
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var window: NSWindow?
     private let appState = ImageViewerState()
+    private var keyboardMonitor: Any?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.regular)
         buildMenu()
+        installKeyboardMonitor()
 
         let contentView = ContentView(state: appState)
         let window = NSWindow(
@@ -37,7 +39,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         appState.open(firstURL)
+        window?.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
         sender.reply(toOpenOrPrint: .success)
+    }
+
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        if !flag {
+            window?.makeKeyAndOrderFront(nil)
+        }
+        return true
+    }
+
+    deinit {
+        if let keyboardMonitor {
+            NSEvent.removeMonitor(keyboardMonitor)
+        }
     }
 
     private func buildMenu() {
@@ -57,11 +74,56 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         fileMenuItem.submenu = fileMenu
         mainMenu.addItem(fileMenuItem)
 
+        let navigateMenuItem = NSMenuItem()
+        let navigateMenu = NSMenu(title: "浏览")
+        let previousItem = NSMenuItem(title: "上一张", action: #selector(previousImageFromMenu), keyEquivalent: "")
+        previousItem.target = self
+        navigateMenu.addItem(previousItem)
+        let nextItem = NSMenuItem(title: "下一张", action: #selector(nextImageFromMenu), keyEquivalent: "")
+        nextItem.target = self
+        navigateMenu.addItem(nextItem)
+        navigateMenuItem.submenu = navigateMenu
+        mainMenu.addItem(navigateMenuItem)
+
         NSApp.mainMenu = mainMenu
+    }
+
+    private func installKeyboardMonitor() {
+        keyboardMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            guard
+                let self,
+                NSApp.modalWindow == nil,
+                event.modifierFlags.intersection(.deviceIndependentFlagsMask).isEmpty
+            else {
+                return event
+            }
+
+            switch event.keyCode {
+            case 123:
+                self.appState.previousImage()
+                return nil
+            case 124:
+                self.appState.nextImage()
+                return nil
+            case 53:
+                self.appState.fitToWindow()
+                return nil
+            default:
+                return event
+            }
+        }
     }
 
     @objc private func openImageFromMenu() {
         appState.openImage()
+    }
+
+    @objc private func previousImageFromMenu() {
+        appState.previousImage()
+    }
+
+    @objc private func nextImageFromMenu() {
+        appState.nextImage()
     }
 }
 

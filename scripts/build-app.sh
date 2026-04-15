@@ -5,6 +5,7 @@ ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 APP_NAME="MacImageViewer"
 DIST_DIR="$ROOT_DIR/dist"
 APP_DIR="$DIST_DIR/$APP_NAME.app"
+DMG_ROOT_DIR="$DIST_DIR/dmg-root"
 DMG_PATH="$DIST_DIR/$APP_NAME.dmg"
 CONTENTS_DIR="$APP_DIR/Contents"
 MACOS_DIR="$CONTENTS_DIR/MacOS"
@@ -14,7 +15,7 @@ cd "$ROOT_DIR"
 
 swift build -c release --product "$APP_NAME"
 
-rm -rf "$APP_DIR"
+rm -rf "$APP_DIR" "$DMG_ROOT_DIR"
 mkdir -p "$MACOS_DIR" "$RESOURCES_DIR"
 
 cp ".build/release/$APP_NAME" "$MACOS_DIR/$APP_NAME"
@@ -34,12 +35,19 @@ if command -v /System/Library/Frameworks/CoreServices.framework/Frameworks/Launc
 fi
 
 rm -f "$DMG_PATH"
+mkdir -p "$DMG_ROOT_DIR"
+cp -R "$APP_DIR" "$DMG_ROOT_DIR/$APP_NAME.app"
+ln -s /Applications "$DMG_ROOT_DIR/Applications"
+
 hdiutil create \
   -volname "$APP_NAME" \
-  -srcfolder "$APP_DIR" \
+  -srcfolder "$DMG_ROOT_DIR" \
   -ov \
   -format UDZO \
   "$DMG_PATH"
 
+rm -rf "$DMG_ROOT_DIR"
+
 echo "已生成：$APP_DIR"
 echo "已生成：$DMG_PATH"
+echo "安装方式：打开 DMG，把 $APP_NAME.app 拖到 Applications。"
