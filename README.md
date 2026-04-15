@@ -24,6 +24,9 @@ cd /Users/cy/Documents/codex/私人/MacImageViewer
 swift run MacImageViewer
 ```
 
+`swift run` 只适合开发调试，不适合拿来设置默认打开图片的软件。
+如果你想把 MacImageViewer 设为系统默认看图工具，请使用下面打包出来的 `.app`，最好先拖到 `/Applications`。
+
 如果系统提示 Swift 工具链不匹配，请打开 Xcode，进入 `Settings -> Locations`，选择当前安装的 Xcode 作为 Command Line Tools。
 
 ## 打包成可双击的 App 和 DMG
@@ -42,21 +45,42 @@ dist/MacImageViewer.app
 dist/MacImageViewer.dmg
 ```
 
-之后你可以双击 `dist/MacImageViewer.app` 启动软件，也可以打开 `dist/MacImageViewer.dmg` 后再运行里面的 App。
+推荐做法是：
+
+1. 打开 `dist/MacImageViewer.dmg`
+2. 把里面的 `MacImageViewer.app` 拖到 `/Applications`
+3. 从 `/Applications` 里双击启动
+
+这样更容易出现在“打开方式”列表里，也更适合设置成默认看图工具。
+
+你也可以直接双击 `dist/MacImageViewer.app` 启动软件，但如果要设默认打开，还是建议先放到 `/Applications`。
 
 如果 macOS 提示“无法验证开发者”，这是因为当前版本没有做开发者签名和公证。你可以在 Finder 里右键点击 App，选择“打开”，再确认打开。
 
 ## 设置为默认看图工具
 
-1. 在 Finder 里找一张图片，例如 `.jpg` 或 `.png`。
-2. 右键图片，选择“显示简介”。
-3. 找到“打开方式”。
-4. 选择 `MacImageViewer.app`。
-5. 点击“全部更改...”。
+1. 先运行一次 `dist/MacImageViewer.app`，或者把它拖到 `/Applications` 后再打开一次。
+2. 在 Finder 里找一张图片，例如 `.jpg` 或 `.png`。
+3. 右键图片，选择“显示简介”。
+4. 找到“打开方式”。
+5. 选择 `MacImageViewer.app`。
+6. 点击“全部更改...”。
 
 这样同类图片以后就会默认用 MacImageViewer 打开。
 
-如果“打开方式”里看不到 MacImageViewer，先双击运行一次 `dist/MacImageViewer.app`，或把它拖到“应用程序”文件夹，再回到上面的步骤。
+如果“打开方式”里还是看不到 MacImageViewer，按这个顺序处理：
+
+1. 先确认你打开的是打包出的 `.app`，不是 `swift run`。
+2. 把 `MacImageViewer.app` 拖到 `/Applications`。
+3. 重新运行一次 `dist/MacImageViewer.app`。
+4. 如果你没有通过打包脚本注册过，可手动执行：
+
+   ```bash
+   /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister \
+     -f /Users/cy/Documents/codex/私人/MacImageViewer/dist/MacImageViewer.app
+   ```
+
+5. 回到“显示简介”再选一次“打开方式”。
 
 ## 自检方法
 

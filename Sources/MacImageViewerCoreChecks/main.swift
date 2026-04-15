@@ -70,11 +70,34 @@ func checkIndexAfterDeletingCurrentImage() throws {
     )
 }
 
+func checkLaunchFileURLsIgnoreSystemArguments() throws {
+    let folder = FileManager.default.temporaryDirectory
+        .appendingPathComponent(UUID().uuidString, isDirectory: true)
+    try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+    defer { try? FileManager.default.removeItem(at: folder) }
+
+    let imageURL = folder.appendingPathComponent("open-me.png")
+    let textURL = folder.appendingPathComponent("skip-me.txt")
+    try Data().write(to: imageURL)
+    try Data().write(to: textURL)
+
+    let urls = ImageFileNavigator.launchFileURLs(from: [
+        "MacImageViewer",
+        "-psn_0_12345",
+        "--debug",
+        textURL.path,
+        imageURL.path
+    ])
+
+    try expect(urls == [imageURL], "启动参数应忽略系统参数，只保留真实文件路径：\(urls)")
+}
+
 let checks: [(String, () throws -> Void)] = [
     ("支持的图片扩展名不区分大小写", checkSupportedImageExtensionsAreCaseInsensitive),
     ("扫描文件夹时只保留图片并按 Finder 风格排序", checkImageFilesFiltersAndSortsByFinderLikeNameOrder),
     ("上一张和下一张在边界处循环", checkNextAndPreviousWrapAroundAtEdges),
-    ("删除当前图片后选择合理的新索引", checkIndexAfterDeletingCurrentImage)
+    ("删除当前图片后选择合理的新索引", checkIndexAfterDeletingCurrentImage),
+    ("启动时忽略系统参数并打开真实图片路径", checkLaunchFileURLsIgnoreSystemArguments)
 ]
 
 do {

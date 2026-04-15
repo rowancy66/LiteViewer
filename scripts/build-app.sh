@@ -19,8 +19,15 @@ mkdir -p "$MACOS_DIR" "$RESOURCES_DIR"
 
 cp ".build/release/$APP_NAME" "$MACOS_DIR/$APP_NAME"
 cp "packaging/Info.plist" "$CONTENTS_DIR/Info.plist"
+printf 'APPL????' > "$CONTENTS_DIR/PkgInfo"
 chmod +x "$MACOS_DIR/$APP_NAME"
 
+# 清理下载隔离属性，避免刚打包出来的 App 在 Finder 里被额外拦一下。
+if command -v xattr >/dev/null 2>&1; then
+  xattr -dr com.apple.quarantine "$APP_DIR" >/dev/null 2>&1 || true
+fi
+
+# 注册到 LaunchServices，方便它出现在“打开方式”列表里。
 if command -v /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister >/dev/null 2>&1; then
   /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister \
     -f "$APP_DIR" >/dev/null 2>&1 || true

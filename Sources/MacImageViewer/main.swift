@@ -25,18 +25,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         NSApp.activate(ignoringOtherApps: true)
 
-        if let firstPath = CommandLine.arguments.dropFirst().first {
-            appState.open(URL(fileURLWithPath: firstPath))
+        if let launchURL = ImageFileNavigator.launchFileURLs(from: CommandLine.arguments).first {
+            appState.open(launchURL)
         }
     }
 
     func application(_ sender: NSApplication, openFiles filenames: [String]) {
-        guard let firstFile = filenames.first else {
+        guard let firstURL = ImageFileNavigator.fileURLsFromLaunchItems(filenames).first else {
             sender.reply(toOpenOrPrint: .failure)
             return
         }
 
-        appState.open(URL(fileURLWithPath: firstFile))
+        appState.open(firstURL)
         sender.reply(toOpenOrPrint: .success)
     }
 

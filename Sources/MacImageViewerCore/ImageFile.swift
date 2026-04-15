@@ -60,6 +60,20 @@ public struct ImageFileNavigator {
         return ImageFileNavigator(files: [selectedURL], currentIndex: 0)
     }
 
+    public static func launchFileURLs(from commandLineArguments: [String]) -> [URL] {
+        fileURLsFromLaunchItems(Array(commandLineArguments.dropFirst()))
+    }
+
+    public static func fileURLsFromLaunchItems(_ items: [String]) -> [URL] {
+        items
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+            .filter { !$0.hasPrefix("-psn_") && !$0.hasPrefix("--") && !$0.hasPrefix("-") }
+            .map { URL(fileURLWithPath: $0) }
+            .filter { FileManager.default.fileExists(atPath: $0.path) }
+            .filter(isSupportedImage)
+    }
+
     public static func indexAfterDeletingCurrent(count: Int, deletedIndex: Int) -> Int? {
         let remainingCount = count - 1
         guard remainingCount > 0 else { return nil }

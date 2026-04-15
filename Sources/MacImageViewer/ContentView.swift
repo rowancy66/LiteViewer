@@ -25,25 +25,41 @@ struct ContentView: View {
 
     private var thumbnailSidebar: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("缩略图")
+            Text("缩略图 · \(state.navigator.files.count) 张")
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(.secondary)
                 .padding(.horizontal, 10)
                 .padding(.top, 10)
 
-            ScrollView {
-                LazyVStack(spacing: 8) {
-                    ForEach(state.navigator.files, id: \.self) { url in
-                        ThumbnailRow(
-                            url: url,
-                            isSelected: state.navigator.currentURL?.standardizedFileURL == url.standardizedFileURL
-                        ) {
-                            state.selectImage(url)
+            if state.navigator.files.isEmpty {
+                VStack(alignment: .leading, spacing: 8) {
+                    Image(systemName: "photo.on.rectangle.angled")
+                        .font(.system(size: 22))
+                    Text("没有可显示的缩略图")
+                        .font(.system(size: 12, weight: .medium))
+                    Text("打开一张图片后，这里会列出同文件夹里的图片。")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .padding(12)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .foregroundStyle(.secondary)
+            } else {
+                ScrollView {
+                    LazyVStack(spacing: 8) {
+                        ForEach(state.navigator.files, id: \.self) { url in
+                            ThumbnailRow(
+                                url: url,
+                                isSelected: state.navigator.currentURL?.standardizedFileURL == url.standardizedFileURL
+                            ) {
+                                state.selectImage(url)
+                            }
                         }
                     }
+                    .padding(.horizontal, 8)
+                    .padding(.bottom, 10)
                 }
-                .padding(.horizontal, 8)
-                .padding(.bottom, 10)
             }
         }
         .frame(width: 150)
@@ -203,14 +219,33 @@ private struct ThumbnailRow: View {
     let url: URL
     let isSelected: Bool
     let onSelect: () -> Void
+    @StateObject private var loader: ThumbnailLoader
+
+    init(url: URL, isSelected: Bool, onSelect: @escaping () -> Void) {
+        self.url = url
+        self.isSelected = isSelected
+        self.onSelect = onSelect
+        _loader = StateObject(wrappedValue: ThumbnailLoader(url: url))
+    }
 
     var body: some View {
         Button(action: onSelect) {
             VStack(spacing: 5) {
-                ThumbnailImage(url: url)
+                ThumbnailPreviewImage(image: loader.thumbnail, isFallback: loader.isFallback)
                     .frame(width: 112, height: 82)
                     .background(Color(nsColor: .windowBackgroundColor))
                     .clipShape(RoundedRectangle(cornerRadius: 6))
+                    .overlay(alignment: .bottomTrailing) {
+                        if loader.isFallback {
+                            Text("图标")
+                                .font(.system(size: 8, weight: .semibold))
+                                .padding(.horizontal, 4)
+                                .padding(.vertical, 2)
+                                .background(.ultraThinMaterial)
+                                .clipShape(RoundedRectangle(cornerRadius: 4))
+                                .padding(4)
+                        }
+                    }
 
                 Text(url.lastPathComponent)
                     .font(.system(size: 11))
@@ -227,27 +262,82 @@ private struct ThumbnailRow: View {
     }
 }
 
-private struct ThumbnailImage: View {
-    let url: URL
+private struct ThumbnailPreviewImage: View {
+    let image: NSImage?
+    let isFallback: Bool
 
     var body: some View {
-        ThumbnailImageView(url: url)
-            .padding(3)
+        ZStack {
+            RoundedRectangle(cornerRadius: 5)
+                .fill(Color(nsColor: .windowBackgroundColor))
+
+            if let image {
+                Image(nsImage: image)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .padding(4)
+            } else {
+                VStack(spacing: 4) {
+                    Image(systemName: "photo")
+                        .font(.system(size: 18))
+                    Text("无预览")
+                        .font(.system(size: 10))
+                }
+                .foregroundStyle(.secondary)
+            }
+        }
+        .overlay(alignment: .topLeading) {
+            if isFallback {
+                Image(systemName: "doc")
+                    .font(.system(size: 9, weight: .semibold))
+                    .foregroundStyle(.secondary)
+                    .padding(5)
+            }
+        }
     }
 }
 
-private struct ThumbnailImageView: NSViewRepresentable {
-    let url: URL
+final class ThumbnailLoader: ObservableObject {
+    private static let cache = NSCache<NSURL, NSImage>()
+    private static let fallbackCache = NSCache<NSURL, NSNumber>()
 
-    func makeNSView(context: Context) -> NSImageView {
-        let imageView = NSImageView()
-        imageView.imageAlignment = .alignCenter
-        imageView.imageScaling = .scaleProportionallyUpOrDown
-        imageView.wantsLayer = true
-        return imageView
+    @Published var thumbnail: NSImage?
+    @Published var isFallback: Bool = false
+
+    private let url: URL
+
+    init(url: URL) {
+        self.url = url
+        load()
     }
 
-    func updateNSView(_ nsView: NSImageView, context: Context) {
-        nsView.image = NSImage(contentsOf: url)
+    private func load() {
+        let cacheKey = url.standardizedFileURL as NSURL
+        if let cached = Self.cache.object(forKey: cacheKey) {
+            thumbnail = cached
+            isFallback = Self.fallbackCache.object(forKey: cacheKey)?.boolValue ?? false
+            return
+        }
+
+        let loadedImage = NSImage(contentsOf: url)
+        let validLoadedImage = loadedImage.flatMap { image -> NSImage? in
+            guard image.size.width > 0, image.size.height > 0 else { return nil }
+            return image
+        }
+
+        if let validLoadedImage {
+            thumbnail = validLoadedImage
+            isFallback = false
+            Self.cache.setObject(validLoadedImage, forKey: cacheKey)
+            Self.fallbackCache.setObject(NSNumber(value: false), forKey: cacheKey)
+            return
+        }
+
+        let icon = NSWorkspace.shared.icon(forFile: url.path)
+        icon.size = NSSize(width: 96, height: 96)
+        thumbnail = icon
+        isFallback = true
+        Self.cache.setObject(icon, forKey: cacheKey)
+        Self.fallbackCache.setObject(NSNumber(value: true), forKey: cacheKey)
     }
 }
