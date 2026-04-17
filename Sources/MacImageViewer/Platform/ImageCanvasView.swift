@@ -51,6 +51,7 @@ final class CanvasNSView: NSView {
 
     override var acceptsFirstResponder: Bool { true }
     override var isFlipped: Bool { true }
+    override var mouseDownCanMoveWindow: Bool { false }
 
     override func viewDidMoveToWindow() {
         window?.makeFirstResponder(self)
@@ -76,25 +77,11 @@ final class CanvasNSView: NSView {
         NSColor(calibratedRed: 0.95, green: 0.95, blue: 0.93, alpha: 1).setFill()
         dirtyRect.fill()
 
-        guard let image else {
+        guard let drawGeometry = currentDrawGeometry() else {
             return
         }
 
-        let imageSize = image.size
-        guard imageSize.width > 0, imageSize.height > 0 else {
-            return
-        }
-
-        let fittedScale = min(bounds.width / imageSize.width, bounds.height / imageSize.height)
-        let baseScale = min(max(fittedScale, 0.01), 1)
-        let finalScale = baseScale * scale
-        let drawSize = CGSize(width: imageSize.width * finalScale, height: imageSize.height * finalScale)
-        let origin = CGPoint(
-            x: (bounds.width - drawSize.width) / 2 + offset.width,
-            y: (bounds.height - drawSize.height) / 2 + offset.height
-        )
-
-        image.draw(in: CGRect(origin: origin, size: drawSize))
+        drawGeometry.image.draw(in: CGRect(origin: drawGeometry.origin, size: drawGeometry.drawSize))
     }
 
     func resetToFit() {
@@ -120,6 +107,7 @@ final class CanvasNSView: NSView {
 
     override func magnify(with event: NSEvent) {
         scale = min(max(scale * (1 + event.magnification), 0.1), 12)
+        clampOffsetIfNeeded()
         onScaleChanged?(scale)
         needsDisplay = true
     }
@@ -144,14 +132,24 @@ final class CanvasNSView: NSView {
     }
 
     override func mouseDown(with event: NSEvent) {
+        guard canPanImage else {
+            lastDragPoint = nil
+            return
+        }
         lastDragPoint = convert(event.locationInWindow, from: nil)
     }
 
     override func mouseDragged(with event: NSEvent) {
+        guard canPanImage else {
+            lastDragPoint = nil
+            return
+        }
+
         let point = convert(event.locationInWindow, from: nil)
         if let lastDragPoint {
             offset.width += point.x - lastDragPoint.x
             offset.height += point.y - lastDragPoint.y
+            clampOffsetIfNeeded()
             needsDisplay = true
         }
         lastDragPoint = point
@@ -172,5 +170,55 @@ final class CanvasNSView: NSView {
         default:
             super.keyDown(with: event)
         }
+    }
+
+    private var canPanImage: Bool {
+        guard let geometry = currentDrawGeometry() else {
+            return false
+        }
+
+        return geometry.drawSize.width > bounds.width + 1 || geometry.drawSize.height > bounds.height + 1
+    }
+
+    private func currentDrawGeometry() -> (image: NSImage, drawSize: CGSize, origin: CGPoint)? {
+        guard let image else {
+            return nil
+        }
+
+        let imageSize = image.size
+        guard imageSize.width > 0, imageSize.height > 0, bounds.width > 0, bounds.height > 0 else {
+            return nil
+        }
+
+        let fittedScale = min(bounds.width / imageSize.width, bounds.height / imageSize.height)
+        let baseScale = min(max(fittedScale, 0.01), 1)
+        let finalScale = baseScale * scale
+        let drawSize = CGSize(width: imageSize.width * finalScale, height: imageSize.height * finalScale)
+        let clampedOffset = clampedOffset(for: drawSize)
+        let origin = CGPoint(
+            x: (bounds.width - drawSize.width) / 2 + clampedOffset.width,
+            y: (bounds.height - drawSize.height) / 2 + clampedOffset.height
+        )
+
+        return (image, drawSize, origin)
+    }
+
+    private func clampOffsetIfNeeded() {
+        guard let geometry = currentDrawGeometry() else {
+            offset = .zero
+            return
+        }
+
+        offset = clampedOffset(for: geometry.drawSize)
+    }
+
+    private func clampedOffset(for drawSize: CGSize) -> CGSize {
+        let horizontalOverflow = max((drawSize.width - bounds.width) / 2, 0)
+        let verticalOverflow = max((drawSize.height - bounds.height) / 2, 0)
+
+        return CGSize(
+            width: min(max(offset.width, -horizontalOverflow), horizontalOverflow),
+            height: min(max(offset.height, -verticalOverflow), verticalOverflow)
+        )
     }
 }

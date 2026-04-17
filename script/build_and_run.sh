@@ -3,7 +3,6 @@ set -euo pipefail
 
 MODE="${1:-run}"
 APP_NAME="LiteViewer"
-BUNDLE_ID="com.liteviewer.app"
 MIN_SYSTEM_VERSION="12.0"
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -56,12 +55,6 @@ chmod +x "$APP_BINARY"
 cp "$ROOT_DIR/packaging/Info.plist" "$INFO_PLIST"
 mkdir -p "$APP_CONTENTS/Resources"
 cp "$ROOT_DIR/packaging/AppIcon.icns" "$APP_CONTENTS/Resources/AppIcon.icns"
-
-if ! /usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" "$INFO_PLIST" >/dev/null 2>&1; then
-  /usr/libexec/PlistBuddy -c "Add :CFBundleIdentifier string $BUNDLE_ID" "$INFO_PLIST"
-else
-  /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier $BUNDLE_ID" "$INFO_PLIST"
-fi
 
 if ! /usr/libexec/PlistBuddy -c "Print :LSMinimumSystemVersion" "$INFO_PLIST" >/dev/null 2>&1; then
   /usr/libexec/PlistBuddy -c "Add :LSMinimumSystemVersion string $MIN_SYSTEM_VERSION" "$INFO_PLIST"

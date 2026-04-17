@@ -14,7 +14,7 @@ enum ViewerWindowFactory {
         window.title = "LiteViewer"
         window.titleVisibility = .hidden
         window.titlebarAppearsTransparent = true
-        window.isMovableByWindowBackground = true
+        window.isMovableByWindowBackground = false
         window.backgroundColor = NSColor(
             calibratedRed: 0.95,
             green: 0.94,

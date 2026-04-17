@@ -12,6 +12,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.setActivationPolicy(.regular)
         menuController.installMainMenu()
         keyboardMonitor.start()
+        LaunchServicesRegistrar.registerInstalledBundleIfNeeded()
 
         let contentView = ContentView(state: appState)
         let window = ViewerWindowFactory.makeWindow(rootView: contentView)
