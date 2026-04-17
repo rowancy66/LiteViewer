@@ -16,8 +16,8 @@ struct ViewerDetailView: View {
         .background(
             LinearGradient(
                 colors: [
-                    ViewerTheme.detailBase.opacity(0.98),
-                    Color.black.opacity(0.96)
+                    ViewerTheme.detailBaseTop,
+                    ViewerTheme.detailBaseBottom
                 ],
                 startPoint: .top,
                 endPoint: .bottom
@@ -30,8 +30,8 @@ struct ViewerDetailView: View {
             ViewerBackgroundView()
             LinearGradient(
                 colors: [
-                    Color.black.opacity(0.30),
-                    Color.black.opacity(0.62)
+                    ViewerTheme.detailCanvasTop,
+                    ViewerTheme.detailCanvasBottom
                 ],
                 startPoint: .top,
                 endPoint: .bottom
@@ -101,7 +101,7 @@ struct ViewerDetailView: View {
 private struct ViewerBackgroundView: NSViewRepresentable {
     func makeNSView(context: Context) -> NSVisualEffectView {
         let view = NSVisualEffectView()
-        view.material = .underWindowBackground
+        view.material = .sidebar
         view.blendingMode = .behindWindow
         view.state = .active
         return view

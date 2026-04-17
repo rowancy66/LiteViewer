@@ -34,7 +34,7 @@ struct ViewerToolbarView: View {
                     VStack(alignment: .leading, spacing: 3) {
                         Text(state.currentFileName)
                             .font(.system(size: 14, weight: .semibold))
-                            .foregroundStyle(.white)
+                            .foregroundStyle(ViewerTheme.detailText)
                             .lineLimit(1)
 
                         Text(state.sidebarSummaryText)

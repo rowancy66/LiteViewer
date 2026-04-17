@@ -73,7 +73,7 @@ final class CanvasNSView: NSView {
     }
 
     override func draw(_ dirtyRect: NSRect) {
-        NSColor.black.setFill()
+        NSColor(calibratedRed: 0.93, green: 0.94, blue: 0.93, alpha: 1).setFill()
         dirtyRect.fill()
 
         guard let image else {

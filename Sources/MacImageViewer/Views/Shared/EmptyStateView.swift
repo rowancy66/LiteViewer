@@ -14,7 +14,7 @@ struct EmptyStateView: View {
                 VStack(alignment: .leading, spacing: 10) {
                     Text(title)
                         .font(.system(size: 32, weight: .bold))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(ViewerTheme.detailText)
 
                     Text(message)
                         .font(.system(size: 14))
@@ -48,8 +48,8 @@ struct EmptyStateView: View {
         .background(
             LinearGradient(
                 colors: [
-                    Color.white.opacity(0.07),
-                    Color.white.opacity(0.03)
+                    Color.white.opacity(0.78),
+                    Color.white.opacity(0.54)
                 ],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
@@ -70,7 +70,7 @@ struct EmptyStateView: View {
                     LinearGradient(
                         colors: [
                             Color(red: 0.96, green: 0.72, blue: 0.38),
-                            Color(red: 0.47, green: 0.27, blue: 0.16)
+                            Color(red: 0.48, green: 0.63, blue: 0.72)
                         ],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
@@ -113,7 +113,7 @@ struct EmptyStateView: View {
         HStack(alignment: .top, spacing: 12) {
             Image(systemName: symbol)
                 .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(Color.white)
+                .foregroundStyle(ViewerTheme.detailText)
                 .frame(width: 28, height: 28)
                 .background(ViewerTheme.detailPanelStrong)
                 .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
@@ -121,7 +121,7 @@ struct EmptyStateView: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
                     .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(ViewerTheme.detailText)
                 Text(detail)
                     .font(.system(size: 12))
                     .foregroundStyle(ViewerTheme.detailTextSoft)

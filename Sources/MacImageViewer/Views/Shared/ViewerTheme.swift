@@ -2,30 +2,34 @@ import AppKit
 import SwiftUI
 
 enum ViewerTheme {
-    static let shellTop = Color(red: 0.95, green: 0.92, blue: 0.88)
-    static let shellMiddle = Color(red: 0.87, green: 0.83, blue: 0.79)
-    static let shellBottom = Color(red: 0.74, green: 0.70, blue: 0.66)
+    static let shellTop = Color(red: 0.96, green: 0.96, blue: 0.93)
+    static let shellMiddle = Color(red: 0.90, green: 0.91, blue: 0.88)
+    static let shellBottom = Color(red: 0.82, green: 0.85, blue: 0.82)
 
-    static let sidebarBase = Color(red: 0.97, green: 0.95, blue: 0.92)
-    static let sidebarCard = Color.white.opacity(0.76)
-    static let sidebarAccent = Color(red: 0.80, green: 0.44, blue: 0.20)
+    static let sidebarBase = Color(red: 0.95, green: 0.95, blue: 0.92)
+    static let sidebarCard = Color.white.opacity(0.78)
+    static let sidebarAccent = Color(red: 0.39, green: 0.53, blue: 0.63)
     static let sidebarBorder = Color.black.opacity(0.08)
-    static let sidebarSelection = Color(red: 0.16, green: 0.16, blue: 0.18)
-    static let sidebarSelectionGlow = Color(red: 0.92, green: 0.56, blue: 0.24)
+    static let sidebarSelection = Color(red: 0.36, green: 0.47, blue: 0.57)
+    static let sidebarSelectionGlow = Color(red: 0.65, green: 0.77, blue: 0.83)
     static let sidebarHover = Color.white.opacity(0.88)
     static let sidebarRow = Color.white.opacity(0.60)
     static let sidebarRowText = Color.black.opacity(0.80)
     static let sidebarRowSecondary = Color.black.opacity(0.48)
 
-    static let detailBase = Color(red: 0.10, green: 0.10, blue: 0.12)
-    static let detailPanel = Color.white.opacity(0.06)
-    static let detailPanelStrong = Color.white.opacity(0.10)
-    static let detailBorder = Color.white.opacity(0.08)
-    static let detailTextMuted = Color.white.opacity(0.66)
-    static let detailTextSoft = Color.white.opacity(0.52)
+    static let detailBaseTop = Color(red: 0.94, green: 0.95, blue: 0.93)
+    static let detailBaseBottom = Color(red: 0.86, green: 0.89, blue: 0.88)
+    static let detailCanvasTop = Color(red: 0.92, green: 0.93, blue: 0.92)
+    static let detailCanvasBottom = Color(red: 0.80, green: 0.84, blue: 0.84)
+    static let detailPanel = Color.white.opacity(0.66)
+    static let detailPanelStrong = Color.white.opacity(0.92)
+    static let detailBorder = Color.black.opacity(0.08)
+    static let detailText = Color.black.opacity(0.82)
+    static let detailTextMuted = Color.black.opacity(0.64)
+    static let detailTextSoft = Color.black.opacity(0.46)
 
-    static let actionPrimary = Color(red: 0.95, green: 0.57, blue: 0.24)
-    static let actionPrimaryPressed = Color(red: 0.87, green: 0.48, blue: 0.18)
+    static let actionPrimary = Color(red: 0.41, green: 0.57, blue: 0.67)
+    static let actionPrimaryPressed = Color(red: 0.33, green: 0.48, blue: 0.58)
 }
 
 struct ViewerCapsuleButtonStyle: ButtonStyle {

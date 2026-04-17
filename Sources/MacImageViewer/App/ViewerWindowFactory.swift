@@ -15,7 +15,12 @@ enum ViewerWindowFactory {
         window.titleVisibility = .hidden
         window.titlebarAppearsTransparent = true
         window.isMovableByWindowBackground = true
-        window.backgroundColor = .black
+        window.backgroundColor = NSColor(
+            calibratedRed: 0.92,
+            green: 0.93,
+            blue: 0.91,
+            alpha: 1
+        )
         window.toolbarStyle = .unified
         window.contentMinSize = NSSize(width: 960, height: 620)
         window.center()
