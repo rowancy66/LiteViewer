@@ -2,18 +2,21 @@
 
 LiteViewer 是一个轻量的 macOS 原生看图软件。它的目标很简单：像系统“预览”或 Quick Look 一样干净地打开图片，但可以用左右方向键或触控板左右滑动，直接切换同一个文件夹里的上一张 / 下一张照片。
 
-当前版本优先保证基础看图体验稳定：界面尽量简洁，主窗口使用深色背景和透明标题栏，不做缩略图栏和复杂图库。
+当前版本优先保证基础看图体验稳定：主窗口采用更像 macOS 原生浏览器的双栏布局，左侧是图片列表和缩略图，右侧是沉浸式大图与常用操作区，不做复杂图库。
 
 ## 主要功能
 
 - 支持常见图片格式：`jpg`、`jpeg`、`png`、`gif`、`tiff`、`tif`、`bmp`、`heic`、`heif`、`webp`
 - 双击或默认打开一张图片后，自动读取同文件夹里的其他图片
+- 左侧边栏显示同文件夹图片的缩略图和文件名，方便快速定位
+- 侧边栏支持更明显的当前选中态和鼠标悬停反馈，浏览手感更像原生桌面应用
 - 按键盘左方向键：上一张
 - 按键盘右方向键：下一张
 - 触控板左右滑动：上一张 / 下一张
 - 触控板双指捏合：放大 / 缩小
 - 自动预加载上一张和下一张，减少切换时的卡顿
-- 右键菜单支持复制当前图片、把剪贴板图片粘贴到当前文件夹、向左旋转、向右旋转、在访达中显示
+- 顶部工具栏保留常用操作：打开、上一张、下一张、适合窗口、实际大小、左转、右转
+- 右键菜单和菜单栏支持复制当前图片、把剪贴板图片粘贴到当前文件夹、向左旋转、向右旋转、在访达中显示、移到废纸篓
 - 支持“适合窗口”和“实际大小”
 - 显示当前序号、文件名和图片尺寸
 
@@ -78,10 +81,16 @@ macOS 的默认打开方式是按文件类型分别设置的。比如 `.jpg` 和
 
 ```bash
 cd /Users/cy/Documents/codex/私人/MacImageViewer
-swift run LiteViewer
+./script/build_and_run.sh
 ```
 
-注意：`swift run` 只适合开发调试，不适合拿来设置默认打开图片的软件。设置默认打开时，请使用打包出来并放进“应用程序”的 `.app`。
+如果你只想验证进程是否能拉起，也可以运行：
+
+```bash
+./script/build_and_run.sh --verify
+```
+
+注意：源码运行只适合开发调试，不适合拿来设置默认打开图片的软件。设置默认打开时，请使用打包出来并放进“应用程序”的 `.app`。
 
 ## 自检方法
 
@@ -103,9 +112,15 @@ swift run LiteViewerCoreChecks
 ## 目录说明
 
 - `Sources/MacImageViewerCore/`：图片格式识别、文件夹扫描、上一张 / 下一张导航等核心逻辑。
-- `Sources/MacImageViewer/`：LiteViewer 的 macOS 界面、窗口、按钮、触控板手势和图片绘制。
+- `Sources/MacImageViewer/App/`：应用入口、窗口创建、菜单和键盘命令。
+- `Sources/MacImageViewer/Views/`：双栏界面、侧边栏、工具栏、状态栏和空状态。
+- `Sources/MacImageViewer/State/`：界面状态协调。
+- `Sources/MacImageViewer/Services/`：图片加载、缩略图生成和编辑写回。
+- `Sources/MacImageViewer/Platform/`：AppKit 手势和绘制桥接。
 - `Sources/MacImageViewerCoreChecks/`：最小自检程序。
+- `script/build_and_run.sh`：开发期的一键构建与运行入口。
 - `scripts/build-app.sh`：打包 `.app` 和 `.dmg`。
+- `scripts/generate-app-icon.swift`：生成 LiteViewer 的 App 图标资源。
 - `packaging/Info.plist`：App 元数据和图片文档类型声明。
 
 ## 后续可以优化

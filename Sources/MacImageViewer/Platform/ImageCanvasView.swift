@@ -1,8 +1,7 @@
 import AppKit
 import SwiftUI
 
-/// 用 AppKit NSView 捕获触控板手势，并手动绘制图片。
-/// SwiftUI 负责外层布局，AppKit 负责更细的 macOS 输入事件。
+/// SwiftUI 负责布局，AppKit 负责更细的 macOS 输入事件和图片绘制。
 struct ImageCanvasView: NSViewRepresentable {
     let image: NSImage
     let resetToken: UUID
@@ -55,6 +54,7 @@ final class CanvasNSView: NSView {
 
     override func viewDidMoveToWindow() {
         window?.makeFirstResponder(self)
+
         if actualSizeObserver == nil {
             actualSizeObserver = NotificationCenter.default.addObserver(
                 forName: .imageViewerActualSize,
@@ -119,8 +119,7 @@ final class CanvasNSView: NSView {
     }
 
     override func magnify(with event: NSEvent) {
-        let nextScale = min(max(scale * (1 + event.magnification), 0.1), 12)
-        scale = nextScale
+        scale = min(max(scale * (1 + event.magnification), 0.1), 12)
         onScaleChanged?(scale)
         needsDisplay = true
     }

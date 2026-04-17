@@ -12,9 +12,17 @@ LEGACY_DMG_PATH="$DIST_DIR/MacImageViewer.dmg"
 CONTENTS_DIR="$APP_DIR/Contents"
 MACOS_DIR="$CONTENTS_DIR/MacOS"
 RESOURCES_DIR="$CONTENTS_DIR/Resources"
+ICON_SCRIPT_HOME="/tmp/liteviewer-icon-home"
+ICON_MODULE_CACHE="/tmp/liteviewer-icon-module-cache"
+ICON_CLANG_CACHE="/tmp/liteviewer-icon-clang-cache"
 
 cd "$ROOT_DIR"
 
+mkdir -p "$ICON_SCRIPT_HOME" "$ICON_MODULE_CACHE" "$ICON_CLANG_CACHE"
+HOME="$ICON_SCRIPT_HOME" \
+SWIFTPM_MODULECACHE_OVERRIDE="$ICON_MODULE_CACHE" \
+CLANG_MODULE_CACHE_PATH="$ICON_CLANG_CACHE" \
+swift scripts/generate-app-icon.swift
 swift build -c release --product "$APP_NAME"
 
 rm -rf "$APP_DIR" "$DMG_ROOT_DIR" "$LEGACY_APP_DIR"
@@ -23,6 +31,7 @@ mkdir -p "$MACOS_DIR" "$RESOURCES_DIR"
 
 cp ".build/release/$APP_NAME" "$MACOS_DIR/$APP_NAME"
 cp "packaging/Info.plist" "$CONTENTS_DIR/Info.plist"
+cp "packaging/AppIcon.icns" "$RESOURCES_DIR/AppIcon.icns"
 printf 'APPL????' > "$CONTENTS_DIR/PkgInfo"
 chmod +x "$MACOS_DIR/$APP_NAME"
 

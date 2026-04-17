@@ -9,6 +9,8 @@
   <string>LiteViewer</string>
   <key>CFBundleExecutable</key>
   <string>LiteViewer</string>
+  <key>CFBundleIconFile</key>
+  <string>AppIcon</string>
   <key>CFBundleIdentifier</key>
   <string>dev.rowancy66.LiteViewer</string>
   <key>CFBundleInfoDictionaryVersion</key>
